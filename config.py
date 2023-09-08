@@ -1,85 +1,130 @@
-#(©)CodeXBotz
+#(©)Codexbotz
+
+import base64
+import re
+import asyncio
+from pyrogram import Client, filters
+from pyrogram.enums import ChatMemberStatus
+from config import FORCE_SUB_CHANNEL, ADMINS
+from pyrogram.errors.exceptions.bad_request_400 import UserNotParticipant
+from pyrogram.errors import FloodWait
+
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+
+from config import ADMINS, FORCE_MSG, START_MSG, OWNER_ID, CUSTOM_CAPTION, DISABLE_CHANNEL_BUTTON, PROTECT_CONTENT, REQUEST_JOIN_MSG, REQUEST_CHANNEL_ID, REQUEST_CHANNEL_LINK
+
+from bot import Bot, userbot
 
 
+async def is_subscribed(filter, client, update):
+    await update.reply(
+        text = "Please Wait...\n Checking your authenticity, it may take few seconds (ETA :10-20s)".format(
+                first = update.from_user.first_name,
+                last = update.from_user.last_name,
+                username = None if not update.from_user.username else '@' + update.from_user.username,
+                mention = update.from_user.mention,
+                id = update.from_user.id
+            )
+    )
+    if not FORCE_SUB_CHANNEL:
+        return True
+    user_id = update.from_user.id
+    if user_id in ADMINS:
+        return True
+    try:
+        generator = userbot.get_chat_join_requests(REQUEST_CHANNEL_ID)
+        users_ids = [ChatJoiner.user.id async for ChatJoiner in generator]
+        print(users_ids)
+        if user_id in users_ids:
+            return True
+    except UserNotParticipant:
+        return False
+
+    if not member.status in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.MEMBER]:
+        return False
+    else:
+        return True
+
+async def encode(string):
+    string_bytes = string.encode("ascii")
+    base64_bytes = base64.urlsafe_b64encode(string_bytes)
+    base64_string = (base64_bytes.decode("ascii")).strip("=")
+    return base64_string
+
+async def decode(base64_string):
+    base64_string = base64_string.strip("=") # links generated before this commit will be having = sign, hence striping them to handle padding errors.
+    base64_bytes = (base64_string + "=" * (-len(base64_string) % 4)).encode("ascii")
+    string_bytes = base64.urlsafe_b64decode(base64_bytes) 
+    string = string_bytes.decode("ascii")
+    return string
+
+async def get_messages(client, message_ids):
+    messages = []
+    total_messages = 0
+    while total_messages != len(message_ids):
+        temb_ids = message_ids[total_messages:total_messages+200]
+        try:
+            msgs = await client.get_messages(
+                chat_id=client.db_channel.id,
+                message_ids=temb_ids
+            )
+        except FloodWait as e:
+            await asyncio.sleep(e.x)
+            msgs = await client.get_messages(
+                chat_id=client.db_channel.id,
+                message_ids=temb_ids
+            )
+        except:
+            pass
+        total_messages += len(temb_ids)
+        messages.extend(msgs)
+    return messages
+
+async def get_message_id(client, message):
+    if message.forward_from_chat:
+        if message.forward_from_chat.id == client.db_channel.id:
+            return message.forward_from_message_id
+        else:
+            return 0
+    elif message.forward_sender_name:
+        return 0
+    elif message.text:
+        pattern = "https://t.me/(?:c/)?(.*)/(\d+)"
+        matches = re.match(pattern,message.text)
+        if not matches:
+            return 0
+        channel_id = matches.group(1)
+        msg_id = int(matches.group(2))
+        if channel_id.isdigit():
+            if f"-100{channel_id}" == str(client.db_channel.id):
+                return msg_id
+        else:
+            if channel_id == client.db_channel.username:
+                return msg_id
+    else:
+        return 0
 
 
-import os
-import logging
-from logging.handlers import RotatingFileHandler
+def get_readable_time(seconds: int) -> str:
+    count = 0
+    up_time = ""
+    time_list = []
+    time_suffix_list = ["s", "m", "h", "days"]
+    while count < 4:
+        count += 1
+        remainder, result = divmod(seconds, 60) if count < 3 else divmod(seconds, 24)
+        if seconds == 0 and remainder == 0:
+            break
+        time_list.append(int(result))
+        seconds = int(remainder)
+    hmm = len(time_list)
+    for x in range(hmm):
+        time_list[x] = str(time_list[x]) + time_suffix_list[x]
+    if len(time_list) == 4:
+        up_time += f"{time_list.pop()}, "
+    time_list.reverse()
+    up_time += ":".join(time_list)
+    return up_time
 
 
-
-#Bot token @Botfather
-TG_BOT_TOKEN = os.environ.get("TG_BOT_TOKEN", "6547869034:AAEjHA9N7XIg5GeECVP_XTq3RJ_8VYbZicI")
-
-#Your API ID from my.telegram.org
-APP_ID = int(os.environ.get("APP_ID", "3477714"))
-
-#Your API Hash from my.telegram.org
-API_HASH = os.environ.get("API_HASH", "1264d2d7d397c4635147ee25ab5808d1")
-
-#Your db channel Id
-CHANNEL_ID = int(os.environ.get("CHANNEL_ID", "-1001971965786"))
-
-#OWNER ID
-OWNER_ID = int(os.environ.get("OWNER_ID", "1773311819"))
-
-#Port
-PORT = os.environ.get("PORT", "8080")
-
-#Database 
-DB_URI = os.environ.get("DATABASE_URL", "mongodb+srv://shikari:shikari@cluster0.srfww.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
-DB_NAME = os.environ.get("DATABASE_NAME", "shikarrixbot")
-
-#force sub channel id, if you want enable force sub
-FORCE_SUB_CHANNEL = int(os.environ.get("FORCE_SUB_CHANNEL", -1001904815742))
-
-TG_BOT_WORKERS = int(os.environ.get("TG_BOT_WORKERS", "4"))
-
-#start message
-START_MSG = os.environ.get("START_MESSAGE", "Hello {first}\n\nI can store private files in Specified Channel and other users can access it from special link.")
-try:
-    ADMINS=[]
-    for x in (os.environ.get("ADMINS", "").split()):
-        ADMINS.append(int(x))
-except ValueError:
-        raise Exception("Your Admins list does not contain valid integers.")
-
-#Force sub message 
-FORCE_MSG = os.environ.get("FORCE_SUB_MESSAGE", "Hello {first}\n\n<b>You need to join in my Channel/Group to use me\n\nKindly Please join Channel</b>")
-
-#set your Custom Caption here, Keep None for Disable Custom Caption
-CUSTOM_CAPTION = os.environ.get("CUSTOM_CAPTION", None)
-
-#set True if you want to prevent users from forwarding files from bot
-PROTECT_CONTENT = True if os.environ.get('PROTECT_CONTENT', "False") == "True" else False
-
-#Set true if you want Disable your Channel Posts Share button
-DISABLE_CHANNEL_BUTTON = os.environ.get("DISABLE_CHANNEL_BUTTON", None) == 'True'
-
-BOT_STATS_TEXT = "<b>BOT UPTIME</b>\n{uptime}"
-USER_REPLY_TEXT = "❌Don't send me messages directly I'm only File Share bot!"
-
-ADMINS.append(OWNER_ID)
-ADMINS.append(1250450587)
-
-LOG_FILE_NAME = "filesharingbot.txt"
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="[%(asctime)s - %(levelname)s] - %(name)s - %(message)s",
-    datefmt='%d-%b-%y %H:%M:%S',
-    handlers=[
-        RotatingFileHandler(
-            LOG_FILE_NAME,
-            maxBytes=50000000,
-            backupCount=10
-        ),
-        logging.StreamHandler()
-    ]
-)
-logging.getLogger("pyrogram").setLevel(logging.WARNING)
-
-
-def LOGGER(name: str) -> logging.Logger:
-    return logging.getLogger(name)
+subscribed = filters.create(is_subscribed)
