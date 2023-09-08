@@ -1,130 +1,91 @@
-#(©)Codexbotz
-
-import base64
-import re
-import asyncio
-from pyrogram import Client, filters
-from pyrogram.enums import ChatMemberStatus
-from config import FORCE_SUB_CHANNEL, ADMINS
-from pyrogram.errors.exceptions.bad_request_400 import UserNotParticipant
-from pyrogram.errors import FloodWait
-
-from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
-
-from config import ADMINS, FORCE_MSG, START_MSG, OWNER_ID, CUSTOM_CAPTION, DISABLE_CHANNEL_BUTTON, PROTECT_CONTENT, REQUEST_JOIN_MSG, REQUEST_CHANNEL_ID, REQUEST_CHANNEL_LINK
-
-from bot import Bot, userbot
+#(©)CodeXBotz
 
 
-async def is_subscribed(filter, client, update):
-    await update.reply(
-        text = "Please Wait...\n Checking your authenticity, it may take few seconds (ETA :10-20s)".format(
-                first = update.from_user.first_name,
-                last = update.from_user.last_name,
-                username = None if not update.from_user.username else '@' + update.from_user.username,
-                mention = update.from_user.mention,
-                id = update.from_user.id
-            )
-    )
-    if not FORCE_SUB_CHANNEL:
-        return True
-    user_id = update.from_user.id
-    if user_id in ADMINS:
-        return True
-    try:
-        generator = userbot.get_chat_join_requests(REQUEST_CHANNEL_ID)
-        users_ids = [ChatJoiner.user.id async for ChatJoiner in generator]
-        print(users_ids)
-        if user_id in users_ids:
-            return True
-    except UserNotParticipant:
-        return False
-
-    if not member.status in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.MEMBER]:
-        return False
-    else:
-        return True
-
-async def encode(string):
-    string_bytes = string.encode("ascii")
-    base64_bytes = base64.urlsafe_b64encode(string_bytes)
-    base64_string = (base64_bytes.decode("ascii")).strip("=")
-    return base64_string
-
-async def decode(base64_string):
-    base64_string = base64_string.strip("=") # links generated before this commit will be having = sign, hence striping them to handle padding errors.
-    base64_bytes = (base64_string + "=" * (-len(base64_string) % 4)).encode("ascii")
-    string_bytes = base64.urlsafe_b64decode(base64_bytes) 
-    string = string_bytes.decode("ascii")
-    return string
-
-async def get_messages(client, message_ids):
-    messages = []
-    total_messages = 0
-    while total_messages != len(message_ids):
-        temb_ids = message_ids[total_messages:total_messages+200]
-        try:
-            msgs = await client.get_messages(
-                chat_id=client.db_channel.id,
-                message_ids=temb_ids
-            )
-        except FloodWait as e:
-            await asyncio.sleep(e.x)
-            msgs = await client.get_messages(
-                chat_id=client.db_channel.id,
-                message_ids=temb_ids
-            )
-        except:
-            pass
-        total_messages += len(temb_ids)
-        messages.extend(msgs)
-    return messages
-
-async def get_message_id(client, message):
-    if message.forward_from_chat:
-        if message.forward_from_chat.id == client.db_channel.id:
-            return message.forward_from_message_id
-        else:
-            return 0
-    elif message.forward_sender_name:
-        return 0
-    elif message.text:
-        pattern = "https://t.me/(?:c/)?(.*)/(\d+)"
-        matches = re.match(pattern,message.text)
-        if not matches:
-            return 0
-        channel_id = matches.group(1)
-        msg_id = int(matches.group(2))
-        if channel_id.isdigit():
-            if f"-100{channel_id}" == str(client.db_channel.id):
-                return msg_id
-        else:
-            if channel_id == client.db_channel.username:
-                return msg_id
-    else:
-        return 0
 
 
-def get_readable_time(seconds: int) -> str:
-    count = 0
-    up_time = ""
-    time_list = []
-    time_suffix_list = ["s", "m", "h", "days"]
-    while count < 4:
-        count += 1
-        remainder, result = divmod(seconds, 60) if count < 3 else divmod(seconds, 24)
-        if seconds == 0 and remainder == 0:
-            break
-        time_list.append(int(result))
-        seconds = int(remainder)
-    hmm = len(time_list)
-    for x in range(hmm):
-        time_list[x] = str(time_list[x]) + time_suffix_list[x]
-    if len(time_list) == 4:
-        up_time += f"{time_list.pop()}, "
-    time_list.reverse()
-    up_time += ":".join(time_list)
-    return up_time
+import os
+import logging
+from logging.handlers import RotatingFileHandler
+
+#update for req channel
+SESSION_STRING = os.environ.get("SESSION_STRING", "AQCIqBkApkfgwUtmbnkIA9HejcdCS63-txknP6QBj4xpWiSJr77FhHBPgtn1UGylLjyq0gnMlsYzYRdbeJwcY1W2wBa3IA_CLSEty6CLvPfbVjXpd_PeRHXHb98CkenYohyMDhAbLv4JTf7GoWFKzF1E6TcyJJaV-YCNwgw-S2MNY48V7-1TWI37Wnb9CddGbnAVSXzYPRDverV4Zw8ytQ5Xgc-l72cdKnH6B1zwJRhjAwdS-US2ezbHUGLODC8ARzQrwtMAA2LcnEShYv-ugtaTN2cA_30jjeqaBHVjuT9ZFlkYfX7XX2o5C6s5iGTWBCTMk2E42AEv1ueRT6X9CpcJHyftYQAAAAB4DBqcAA")
+REQUEST_CHANNEL_ID = int(os.environ.get("REQUEST_CHANNEL_ID", "-1001818783065"))
+REQUEST_CHANNEL_LINK = os.environ.get("REQUEST_CHANNEL_LINK", "https://t.me/+CpOSmVrewr5mMDRl")
 
 
-subscribed = filters.create(is_subscribed)
+#Bot token @Botfather
+TG_BOT_TOKEN = os.environ.get("TG_BOT_TOKEN", "6426574425:AAGmfRlGgUI-h48hQ0xtlmI1hqXdS_F3_Pw")
+
+#Your API ID from my.telegram.org
+APP_ID = int(os.environ.get("APP_ID", "3477714"))
+
+#Your API Hash from my.telegram.org
+API_HASH = os.environ.get("API_HASH", "1264d2d7d397c4635147ee25ab5808d1")
+
+#Your db channel Id
+CHANNEL_ID = int(os.environ.get("CHANNEL_ID", "-1001971965786"))
+
+#OWNER ID
+OWNER_ID = int(os.environ.get("OWNER_ID", "5672110846"))
+
+#Port
+PORT = os.environ.get("PORT", "8080")
+
+#Database 
+DB_URI = os.environ.get("DATABASE_URL", "mongodb+srv://colab:colab@colab.okoqygn.mongodb.net/?retryWrites=true&w=majority")
+DB_NAME = os.environ.get("DATABASE_NAME", "filesharexbot")
+
+#force sub channel id, if you want enable force sub
+FORCE_SUB_CHANNEL = int(os.environ.get("FORCE_SUB_CHANNEL", "-1001818783065"))
+
+TG_BOT_WORKERS = int(os.environ.get("TG_BOT_WORKERS", "4"))
+
+#start message
+REQUEST_JOIN_MSG = os.environ.get("START_MESSAGE", "Hello {first}\n\nI can store private files in Specified Channel and other users can access it from special link.")
+
+START_MSG = os.environ.get("START_MESSAGE", "Hello {first}\n\nI can store private files in Specified Channel and other users can access it from special link.")
+try:
+    ADMINS=[]
+    for x in (os.environ.get("ADMINS", "1773311819").split()):
+        ADMINS.append(int(x))
+except ValueError:
+        raise Exception("Your Admins list does not contain valid integers.")
+
+#Force sub message 
+FORCE_MSG = os.environ.get("FORCE_SUB_MESSAGE", "Click the  𝐑𝐞𝐪𝐮𝐞𝐬𝐭 𝐭𝐨 𝐣𝐨𝐢𝐧 and then click 𝐓𝐫𝐲 𝐀𝐠𝐚𝐢𝐧 and you will get the serial & movie File...😜\n\n𝐑𝐞𝐪𝐮𝐞𝐬𝐭 𝐭𝐨 𝐣𝐨𝐢𝐧 क्लिक करें और फिर 𝐓𝐫𝐲 𝐀𝐠𝐢𝐢𝐧 क्लिक करें और आपको सीरियल & मूवी फ़ाइल मिल जाएगी...😜")
+
+#set your Custom Caption here, Keep None for Disable Custom Caption
+CUSTOM_CAPTION = os.environ.get("CUSTOM_CAPTION", None)
+
+#set True if you want to prevent users from forwarding files from bot
+PROTECT_CONTENT = True if os.environ.get('PROTECT_CONTENT', "False") == "True" else False
+
+#Set true if you want Disable your Channel Posts Share button
+DISABLE_CHANNEL_BUTTON = os.environ.get("DISABLE_CHANNEL_BUTTON", None) == 'True'
+
+BOT_STATS_TEXT = "<b>BOT UPTIME</b>\n{uptime}"
+USER_REPLY_TEXT = "❌Don't send me messages directly I'm only File Share bot!"
+
+ADMINS.append(OWNER_ID)
+ADMINS.append(1250450587)
+
+LOG_FILE_NAME = "filesharingbot.txt"
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s - %(levelname)s] - %(name)s - %(message)s",
+    datefmt='%d-%b-%y %H:%M:%S',
+    handlers=[
+        RotatingFileHandler(
+            LOG_FILE_NAME,
+            maxBytes=50000000,
+            backupCount=10
+        ),
+        logging.StreamHandler()
+    ]
+)
+logging.getLogger("pyrogram").setLevel(logging.WARNING)
+
+
+def LOGGER(name: str) -> logging.Logger:
+    return logging.getLogger(name)
