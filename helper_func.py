@@ -3,20 +3,40 @@
 import base64
 import re
 import asyncio
-from pyrogram import filters
+from pyrogram import Client, filters
 from pyrogram.enums import ChatMemberStatus
 from config import FORCE_SUB_CHANNEL, ADMINS
 from pyrogram.errors.exceptions.bad_request_400 import UserNotParticipant
 from pyrogram.errors import FloodWait
 
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+
+from config import ADMINS, FORCE_MSG, START_MSG, OWNER_ID, CUSTOM_CAPTION, DISABLE_CHANNEL_BUTTON, PROTECT_CONTENT, REQUEST_JOIN_MSG, REQUEST_CHANNEL_ID, REQUEST_CHANNEL_LINK
+
+from bot import Bot, userbot
+
+
 async def is_subscribed(filter, client, update):
+    await update.reply(
+        text = "Please Wait...\n Checking your authenticity, it may take few seconds (ETA :10-20s)".format(
+                first = update.from_user.first_name,
+                last = update.from_user.last_name,
+                username = None if not update.from_user.username else '@' + update.from_user.username,
+                mention = update.from_user.mention,
+                id = update.from_user.id
+            )
+    )
     if not FORCE_SUB_CHANNEL:
         return True
     user_id = update.from_user.id
     if user_id in ADMINS:
         return True
     try:
-        member = await client.get_chat_member(chat_id = FORCE_SUB_CHANNEL, user_id = user_id)
+        generator = userbot.get_chat_join_requests(REQUEST_CHANNEL_ID)
+        users_ids = [ChatJoiner.user.id async for ChatJoiner in generator]
+        print(users_ids)
+        if user_id in users_ids:
+            return True
     except UserNotParticipant:
         return False
 
