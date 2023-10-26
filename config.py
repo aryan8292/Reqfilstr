@@ -9,8 +9,8 @@ from logging.handlers import RotatingFileHandler
 
 #update for req channel
 SESSION_STRING = os.environ.get("SESSION_STRING", "BQA1ENIAMcfNEIS2NxnMj1ZQOrg6-tkCZmz2hrwmyyLS9kwNMv5op504B3ok1mEUqGTAr-Xdxd5pyr5o0onmKZWQ8oRS5ZN_kOpYxJzNWAivWsQrUvnbZj12SP9wdLPzwkDoEhW2mXVGoRR8T8unJ6CWV_II7hj_LqEFeKZen_XlAX6Qv_uCeAF28NdFTLSh7zxlz2xTm5KxIa0InVc-r34lyp3IMjVs7uS-7FdU1GInjgKWsBQ2kwlvUc3vJmaU-rcOZtXTXemm2vfea8og3ej7m_K-4UNmNaBniV6Yi5DaNMcnxM2iW5oJBdsT7wfZU_2TlK5-VwPTnDKhO__1Z8Sblhf7vQAAAABpspdLAA")
-REQUEST_CHANNEL_ID = int(os.environ.get("REQUEST_CHANNEL_ID", "-1001978977216"))
-REQUEST_CHANNEL_LINK = os.environ.get("REQUEST_CHANNEL_LINK", "https://t.me/+E_9j3fM54MZlZGQ1")
+REQUEST_CHANNEL_ID = int(os.environ.get("REQUEST_CHANNEL_ID", "-1002037171802"))
+REQUEST_CHANNEL_LINK = os.environ.get("REQUEST_CHANNEL_LINK", "https://t.me/+Ibcahprx3eszYTVl")
 
 
 #Bot token @Botfather
@@ -36,7 +36,7 @@ DB_URI = os.environ.get("DATABASE_URL", "mongodb+srv://colab:colab@colab.okoqygn
 DB_NAME = os.environ.get("DATABASE_NAME", "shikarikabot")
 
 #force sub channel id, if you want enable force sub
-FORCE_SUB_CHANNEL = int(os.environ.get("FORCE_SUB_CHANNEL", "-1001978977216"))
+FORCE_SUB_CHANNEL = int(os.environ.get("FORCE_SUB_CHANNEL", "-1002037171802"))
 
 TG_BOT_WORKERS = int(os.environ.get("TG_BOT_WORKERS", "4"))
 
